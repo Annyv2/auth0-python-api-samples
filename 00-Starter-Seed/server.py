@@ -50,7 +50,7 @@ def requires_auth(f):
                                  'Bearer + \s + token'}, 401)
 
         token = parts[1]
-        jsonurl = urllib.urlopen(auth0_domain+'.well-known/jwks.json')
+        jsonurl = urllib.urlopen('https://'+auth0_domain+'/.well-known/jwks.json')
         jwks = json.loads(jsonurl.read())
         unverified_header = jwt.get_unverified_header(token)
         rsa_key = {}
@@ -70,7 +70,7 @@ def requires_auth(f):
                     rsa_key,
                     algorithms=unverified_header['alg'],
                     audience=api_audience,
-                    issuer=auth0_domain
+                    issuer='https://'+auth0_domain+'/'
                 )
             except jwt.ExpiredSignatureError:
                 return handle_error({'code': 'token_expired',

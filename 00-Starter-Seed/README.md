@@ -4,13 +4,13 @@ This is the seed project you need to use if you're going to create a Python + Fl
 # Running the example
 In order to run the example you need to have `python` and `pip` installed.
 
-You also need to set your Auth0 Domain and the API's audience as environment variables with the following names respectively: `AUTH0_DOMAIN`, please make sure it's in the format `https://example.auth0.com/` and `API_ID`, which is the audience of your API. You can find an example in the `env.example` file.
+You also need to set your Auth0 Domain and the API's audience as environment variables with the following names respectively: `AUTH0_DOMAIN` and `API_ID`, which is the audience of your API. You can find an example in the `env.example` file.
 
 For that, if you just create a file named `.env` in the directory and set the values like the following, the app will just work:
 
 ```bash
 # .env file
-AUTH0_DOMAIN=https://YOUR_DOMAIN/
+AUTH0_DOMAIN=example.auth0.com
 API_ID=YOUR_API_AUDIENCE
 ```
 
