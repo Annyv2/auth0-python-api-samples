@@ -1,15 +1,17 @@
-import jwt
+import json
 import os
+import urllib
 
+from dotenv import Dotenv
 from functools import wraps
 from flask import Flask, request, jsonify, _app_ctx_stack
-from dotenv import Dotenv
 from flask_cors import cross_origin
+from jose import jwt
 
 try:
     env = Dotenv('./.env')
-    client_id = env["AUTH0_CLIENT_ID"]
-    client_secret = env["AUTH0_CLIENT_SECRET"]
+    auth0_domain = env['AUTH0_DOMAIN']
+    api_audience = env['API_ID']
 except IOError:
     env = os.environ
 
@@ -48,31 +50,43 @@ def requires_auth(f):
                                  'Bearer + \s + token'}, 401)
 
         token = parts[1]
-        try:
-            payload = jwt.decode(
-                token,
-                client_secret,
-                audience=client_id
-            )
-        except jwt.ExpiredSignature:
-            return handle_error({'code': 'token_expired',
-                                'description': 'token is expired'}, 401)
-        except jwt.InvalidAudienceError:
-            return handle_error({'code': 'invalid_audience',
-                                'description': 'incorrect audience, expected: '
-                                 + client_id}, 401)
-        except jwt.DecodeError:
-            return handle_error({'code': 'token_invalid_signature',
-                                'description':
-                                    'token signature is invalid'}, 401)
-        except Exception:
-            return handle_error({'code': 'invalid_header',
-                                'description': 'Unable to parse authentication'
-                                 ' token.'}, 400)
+        jsonurl = urllib.urlopen(auth0_domain+'.well-known/jwks.json')
+        jwks = json.loads(jsonurl.read())
+        unverified_header = jwt.get_unverified_header(token)
+        rsa_key = {}
+        for key in jwks['keys']:
+            if key['kid'] == unverified_header['kid']:
+                rsa_key = {
+                    'kty': key['kty'],
+                    'kid': key['kid'],
+                    'use': key['use'],
+                    'n': key['n'],
+                    'e': key['e']
+                }
+        if rsa_key:
+            try:
+                payload = jwt.decode(
+                    token,
+                    rsa_key,
+                    algorithms=unverified_header['alg'],
+                    audience=api_audience,
+                    issuer=auth0_domain
+                )
+            except jwt.ExpiredSignatureError:
+                return handle_error({'code': 'token_expired',
+                                    'description': 'token is expired'}, 401)
+            except jwt.JWTClaimsError:
+                return handle_error({'code': 'invalid_claims',
+                                    'description': 'incorrect claims, please check the audience and issuer'}, 401)
+            except Exception:
+                return handle_error({'code': 'invalid_header',
+                                    'description': 'Unable to parse authentication'
+                                    ' token.'}, 400)
 
-        _app_ctx_stack.top.current_user = payload
-        return f(*args, **kwargs)
-
+            _app_ctx_stack.top.current_user = payload
+            return f(*args, **kwargs)
+        return handle_error({'code': 'invalid_header',
+                             'description': 'Unable to find appropriate key'}, 400)    
     return decorated
 
 
