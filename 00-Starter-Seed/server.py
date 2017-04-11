@@ -1,19 +1,16 @@
 import json
-import os
 import urllib
 
-from dotenv import Dotenv
++from os import environ as env, path
++from dotenv import load_dotenv
 from functools import wraps
 from flask import Flask, request, jsonify, _app_ctx_stack
 from flask_cors import cross_origin
 from jose import jwt
 
-try:
-    env = Dotenv('./.env')
-    auth0_domain = env['AUTH0_DOMAIN']
-    api_audience = env['API_ID']
-except IOError:
-    env = os.environ
+load_dotenv(path.join(path.dirname(__file__), '.env'))
+auth0_domain = env['AUTH0_DOMAIN']
+api_audience = env['API_ID']
 
 app = Flask(__name__)
 
@@ -106,4 +103,4 @@ def securedPing():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=os.environ.get('PORT', 3001))
+    app.run(host='0.0.0.0', port=env.get('PORT', 3001))
